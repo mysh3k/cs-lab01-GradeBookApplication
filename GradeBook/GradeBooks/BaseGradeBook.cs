@@ -9,17 +9,18 @@ using Newtonsoft.Json.Linq;
 
 namespace GradeBook.GradeBooks
 {
-    public class BaseGradeBook
+    public abstract class BaseGradeBook
     {
-        public string Name { get; set; }
+        public bool IsWeighted { get; set; }
         public GradeBookType Type { get; set; }
-
+        public string Name { get; set; }
         public List<Student> Students { get; set; }
 
-        public BaseGradeBook(string name)
+        public BaseGradeBook(string name, bool IsWeight)
         {
             Name = name;
             Students = new List<Student>();
+            IsWeighted = IsWeight;
         }
 
         public void AddStudent(Student student)
@@ -111,15 +112,26 @@ namespace GradeBook.GradeBooks
             switch (letterGrade)
             {
                 case 'A':
-                    return 4;
+                    if ((studentType == StudentType.Honors || studentType == StudentType.DualEnrolled) && IsWeighted == true)
+                        return 5;
+                    else return 4;
                 case 'B':
-                    return 3;
+                    if ((studentType == StudentType.Honors || studentType == StudentType.DualEnrolled) && IsWeighted == true)
+                        return 4;
+                    else return 3;
+
                 case 'C':
-                    return 2;
+                    if ((studentType == StudentType.Honors || studentType == StudentType.DualEnrolled) && IsWeighted == true)
+                        return 3;
+                    else return 2;
                 case 'D':
-                    return 1;
+                    if ((studentType == StudentType.Honors || studentType == StudentType.DualEnrolled) && IsWeighted == true)
+                        return 2;
+                    else return 1;
                 case 'F':
-                    return 0;
+                    if ((studentType == StudentType.Honors || studentType == StudentType.DualEnrolled) && IsWeighted == true)
+                        return 1;
+                    else return 0;
             }
             return 0;
         }
@@ -190,7 +202,6 @@ namespace GradeBook.GradeBooks
             if (dualEnrolledPoints != 0)
                 Console.WriteLine("Average for only dual enrolled students is " + (dualEnrolledPoints / Students.Where(e => e.Type == StudentType.DualEnrolled).Count()));
         }
-
         public virtual void CalculateStudentStatistics(string name)
         {
             var student = Students.FirstOrDefault(e => e.Name == name);
@@ -219,7 +230,6 @@ namespace GradeBook.GradeBooks
             else
                 return 'F';
         }
-
         /// <summary>
         ///     Converts json to the appropriate gradebook type.
         ///     Note: This method contains code that is not recommended practice.
@@ -237,7 +247,6 @@ namespace GradeBook.GradeBooks
 
             var jobject = JsonConvert.DeserializeObject<JObject>(json);
             var gradeBookType = jobject.Property("Type")?.Value?.ToString();
-
             // Check if StandardGradeBook exists
             if ((from assembly in AppDomain.CurrentDomain.GetAssemblies()
                  from type in assembly.GetTypes()
@@ -251,13 +260,11 @@ namespace GradeBook.GradeBooks
                 else
                     gradeBookType = Enum.GetName(gradebookEnum, int.Parse(gradeBookType));
             }
-
             // Get GradeBook from the GradeBook.GradeBooks namespace
             var gradebook = (from assembly in AppDomain.CurrentDomain.GetAssemblies()
                              from type in assembly.GetTypes()
                              where type.FullName == "GradeBook.GradeBooks." + gradeBookType + "GradeBook"
                              select type).FirstOrDefault();
-
 
             // Protection code
             if (gradebook == null)
@@ -265,7 +272,7 @@ namespace GradeBook.GradeBooks
                              from type in assembly.GetTypes()
                              where type.FullName == "GradeBook.GradeBooks.StandardGradeBook"
                              select type).FirstOrDefault();
-            
+
             return JsonConvert.DeserializeObject(json, gradebook);
         }
     }
